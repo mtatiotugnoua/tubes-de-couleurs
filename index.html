@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐟 Tubes de Couleurs du Poisson</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- ===== PWA ===== -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1E4E8B">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- ===== /PWA ===== -->
+</head>
+<body>
+
+<!-- ── SÉLECTEUR DE MODE ──────────────────────────────────────── -->
+<div class="mode-overlay" id="modeOverlay">
+    <div class="mode-box">
+        <div class="mode-logo">🐟</div>
+        <h2>Tubes de Couleurs</h2>
+        <p class="mode-subtitle">Choisis ton mode de jeu</p>
+        <div class="mode-buttons">
+            <button class="mode-btn" data-mode="baby">
+                <span class="mode-icon">🍼</span>
+                <div class="mode-text">
+                    <span class="mode-name">Bébé</span>
+                    <span class="mode-age">3–5 ans · Guidé</span>
+                </div>
+            </button>
+            <button class="mode-btn mode-btn-featured" data-mode="adventure">
+                <span class="mode-icon">🐟</span>
+                <div class="mode-text">
+                    <span class="mode-name">Aventure</span>
+                    <span class="mode-age">6–8 ans · Classique</span>
+                </div>
+            </button>
+            <button class="mode-btn" data-mode="champion">
+                <span class="mode-icon">🏆</span>
+                <div class="mode-text">
+                    <span class="mode-name">Champion</span>
+                    <span class="mode-age">9–10 ans · Compétitif</span>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MASCOTTE POISSON (mode Aventure) ──────────────────────── -->
+<div class="fish-mascot" id="fishMascot">
+    <div class="fish-bubble" id="fishBubble">
+        <span id="fishMessage">Bonne chance !</span>
+    </div>
+    <span class="fish-emoji" id="fishEmoji">🐟</span>
+</div>
+
+<!-- ── FLÈCHE TUTORIELLE (mode Bébé, niveau 1) ───────────────── -->
+<div class="tutorial-arrow" id="tutorialArrow">
+    <span class="tut-emoji">👆</span>
+    <span class="tut-text">Clique ici !</span>
+</div>
+
+<!-- ── NOTIF COMBO (mode Aventure) ───────────────────────────── -->
+<div class="combo-notif" id="comboNotif">
+    🔥 COMBO × <span id="comboCount">3</span>
+</div>
+
+<!-- ── JEU PRINCIPAL ─────────────────────────────────────────── -->
+<div class="game-container">
+    <header>
+        <h1>🐟 Tubes de Couleurs</h1>
+        <p class="subtitle">Trie les couleurs — un tube, une couleur !</p>
+    </header>
+
+    <div class="level-bar">
+        <button class="btn-level" id="prevLevel">◀</button>
+        <div class="level-info">
+            <span class="level-label"    id="levelLabel">Niveau 1 — Découverte 🌱</span>
+            <span class="stars-display"  id="levelStars"></span>
+            <span class="level-theme"    id="levelTheme"></span>
+            <span class="level-progress" id="levelProgress">1 / 20</span>
+        </div>
+        <button class="btn-level" id="nextLevel">▶</button>
+        <span class="move-counter" id="moveCounterEl">
+            Coups : <strong id="moveCount">0</strong>
+        </span>
+    </div>
+
+    <!-- Barre Champion (masquée par défaut) -->
+    <div class="champion-bar" id="championBar">
+        <span>🎯 Optimal : ~<strong id="optimalMoves">0</strong></span>
+        <span>🏅 Record : <strong id="bestScore">--</strong></span>
+        <label class="chrono-label">
+            <input type="checkbox" id="chronoToggle"> ⏱ Chrono
+        </label>
+        <span class="chrono-time" id="chronoDisplay">00:00</span>
+    </div>
+
+    <!-- Banner blocage -->
+    <div class="deadlock-banner" id="deadlockBanner">
+        ⚠️ Aucun coup possible ! Utilise ↩ Annuler ou 💡 Indice.
+    </div>
+
+    <div class="tubes-area" id="tubesArea"></div>
+
+    <div class="controls">
+        <button class="btn-restart btn-undo" id="undoBtn" disabled>
+            ↩ Annuler (<span id="undoLeft">3</span>)
+        </button>
+        <button class="btn-restart btn-hint" id="hintBtn">💡 Indice</button>
+        <button class="btn-restart" id="restartBtn">🔄 Recommencer</button>
+        <button class="btn-restart btn-mute" id="muteBtn">🔇 Muet</button>
+        <button class="btn-restart btn-mode-switch" id="modeSwitchBtn">🎮 Mode</button>
+    </div>
+
+    <div class="global-progress" id="globalProgress"></div>
+</div>
+
+<!-- ── OVERLAY VICTOIRE ───────────────────────────────────────── -->
+<div class="win-overlay" id="winOverlay">
+    <div class="win-box">
+        <div class="win-emoji">🎉</div>
+        <h2>Bravo !</h2>
+        <div class="win-stars" id="winStars">⭐⭐⭐</div>
+        <p id="winMessage">Tu as trié toutes les couleurs !</p>
+        <p class="win-score">
+            Coups : <strong id="winMoves">0</strong>
+            <span class="win-optimal" id="winOptimal"></span>
+        </p>
+        <p class="win-chrono" id="winChrono"></p>
+        <p class="new-record" id="newRecord" style="display:none">🏅 Nouveau record !</p>
+        <button class="btn-restart" id="winRestartBtn">🎮 Rejouer</button>
+        <button class="btn-restart btn-next" id="winNextBtn">Niveau suivant ▶</button>
+    </div>
+</div>
+
+<script src="game.js"></script>
+
+<!-- ===== Enregistrement du Service Worker (PWA) ===== -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('Service Worker actif'))
+        .catch(err => console.warn('SW non enregistré :', err));
+    });
+  }
+</script>
+</body>
+</html>
