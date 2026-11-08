@@ -196,7 +196,6 @@ h1 {
     cursor: pointer;
     transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
                 filter   0.22s ease;
-    will-change: transform, filter;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     /* enlarged click zone for small fingers */
@@ -777,4 +776,21 @@ body[data-mode="baby"] .tube-wrapper.selected {
     font-size: .8rem;
     margin-top: 8px;
     letter-spacing: .5px;
+}
+
+.tube-wrapper:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 4px;
+    border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

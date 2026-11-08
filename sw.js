@@ -1,15 +1,20 @@
-// sw.js — Service Worker de la PWA "Tubes de Couleurs"
-// IMPORTANT : quand tu modifies le jeu, change v1 -> v2 (puis v3, etc.)
-// pour forcer la mise à jour sur les appareils déjà installés.
-const CACHE = 'tubes-couleurs-v1';
+'use strict';
 
-// Fichiers mis en cache dès l'installation (fonctionnement hors ligne complet).
-const PRECACHE = ['./', './index.html', './style.css', './game.js',
-                  './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'tubes-couleurs-v3';
+const CACHE_PREFIX = 'tubes-couleurs-';
+
+const PRECACHE = [
+  './index.html',
+  './style.css',
+  './game.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE)
+    caches.open(CACHE_NAME)
       .then(cache => cache.addAll(PRECACHE))
       .then(() => self.skipWaiting())
   );
@@ -18,26 +23,62 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-      ))
+      .then(keys =>
+        Promise.all(
+          keys
+            .filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+            .map(key => caches.delete(key))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
 
-// Stratégie « cache d'abord, puis réseau ».
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        if (response.ok && response.type === 'basic') {
-          const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put(event.request, copy));
+  const request = event.request;
+
+  if (request.method !== 'GET') return;
+
+  const requestUrl = new URL(request.url);
+  const appScope = new URL(self.registration.scope);
+
+  if (
+    requestUrl.origin !== appScope.origin ||
+    !requestUrl.pathname.startsWith(appScope.pathname)
+  ) {
+    return;
+  }
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    if (request.mode === 'navigate') {
+      try {
+        const response = await fetch(request);
+
+        if (response.ok) {
+          await cache.put('./index.html', response.clone());
         }
+
         return response;
-      }).catch(() => caches.match('./index.html'));
-    })
-  );
+      } catch {
+        return (await cache.match('./index.html')) || Response.error();
+      }
+    }
+
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) return cachedResponse;
+
+    try {
+      const response = await fetch(request);
+
+      if (response.ok && response.type === 'basic') {
+        await cache.put(request, response.clone());
+      }
+
+      return response;
+    } catch {
+      return Response.error();
+    }
+  })());
 });

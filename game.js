@@ -192,7 +192,12 @@ const LS_KEY = 'tubeColorGame_v2';
 
 function loadProgress() {
     if (!_progressCache) {
-        try { _progressCache = JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
+        try {
+            const stored = JSON.parse(localStorage.getItem(LS_KEY));
+            _progressCache = stored && typeof stored === 'object' && !Array.isArray(stored)
+                ? stored
+                : {};
+        }
         catch (_) { _progressCache = {}; }
     }
     return _progressCache;
@@ -763,22 +768,52 @@ function flashInvalid(index) {
 //  RENDU (étendu : formes accessibilité)
 // ─────────────────────────────────────────────────────────────────
 function renderTubes() {
-    const area   = document.getElementById('tubesArea');
-    const COLORS = ALL_COLORS.slice(0, LEVELS[currentLevel].numColors);
+    const area = document.getElementById('tubesArea');
+    if (!area) return;
+
+    const focusedTubeIndex =
+        document.activeElement &&
+        document.activeElement.classList.contains('tube-wrapper')
+            ? Number(document.activeElement.dataset.index)
+            : null;
+
+    const colors = ALL_COLORS.slice(0, LEVELS[currentLevel].numColors);
     area.innerHTML = '';
 
     tubes.forEach((tube, index) => {
         const complete = isComplete(tube);
-
         const wrapper = document.createElement('div');
+
         wrapper.className = 'tube-wrapper';
         if (selectedTube === index) wrapper.classList.add('selected');
-        if (complete)               wrapper.classList.add('complete');
-        wrapper.dataset.index = index;
-        wrapper.setAttribute('aria-label', `Tube ${index + 1}`);
-        wrapper.addEventListener('click', () => handleTubeClick(index));
+        if (complete) wrapper.classList.add('complete');
 
-        const rim  = document.createElement('div');
+        wrapper.dataset.index = index;
+        wrapper.setAttribute('role', 'button');
+        wrapper.setAttribute('tabindex', '0');
+        wrapper.setAttribute('aria-pressed', String(selectedTube === index));
+
+        const contents = tube.length
+            ? tube.slice().reverse()
+                .map(colorIndex => colors[colorIndex]?.name || 'couleur inconnue')
+                .join(', ')
+            : 'vide';
+
+        wrapper.setAttribute(
+            'aria-label',
+            `Tube ${index + 1}, ${contents}, ${tube.length} sur ${currentCapacity} cases` +
+                (complete ? ', terminé' : '')
+        );
+
+        wrapper.addEventListener('click', () => handleTubeClick(index));
+        wrapper.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleTubeClick(index);
+            }
+        });
+
+        const rim = document.createElement('div');
         rim.className = 'tube-top';
 
         const body = document.createElement('div');
@@ -787,21 +822,23 @@ function renderTubes() {
         for (let i = currentCapacity - 1; i >= 0; i--) {
             const layer = document.createElement('div');
             layer.className = 'color-layer';
-            if (i < tube.length) {
-                const idx = tube[i];
-                layer.classList.add('filled');
-                layer.style.backgroundColor = COLORS[idx].hex;
 
-                // Forme accessibilité daltonisme
+            if (i < tube.length) {
+                const colorIndex = tube[i];
+                layer.classList.add('filled');
+                layer.style.backgroundColor = colors[colorIndex].hex;
+
                 const shape = document.createElement('span');
-                shape.className   = 'color-shape';
-                shape.textContent = COLOR_SHAPES[idx];
+                shape.className = 'color-shape';
+                shape.textContent = COLOR_SHAPES[colorIndex];
+                shape.setAttribute('aria-hidden', 'true');
                 layer.appendChild(shape);
             }
+
             body.appendChild(layer);
         }
 
-        const shine  = document.createElement('div');
+        const shine = document.createElement('div');
         shine.className = 'glass-shine';
         shine.setAttribute('aria-hidden', 'true');
 
@@ -815,6 +852,13 @@ function renderTubes() {
         wrapper.appendChild(body);
         area.appendChild(wrapper);
     });
+
+    if (focusedTubeIndex !== null) {
+        const nextFocusedTube = area.querySelector(
+            `.tube-wrapper[data-index="${focusedTubeIndex}"]`
+        );
+        if (nextFocusedTube) nextFocusedTube.focus();
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────
